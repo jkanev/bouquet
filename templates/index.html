@@ -152,7 +152,10 @@
                         <div id="logo">Flower</div>
                         <div class="description">EEG Visualization in the Time Domain, by Neo Mohsenvand, mmv@mit.edu</div>
                         <form enctype="multipart/form-data" method="POST" action="/upload">
-                            <label class="btn btn-primary btn-file">Load EDF File<input id="fileinput" type="file" onchange="this.form.submit()" style="display: none;" name="file" accept=".edf;.bdf"></label>
+                            <label class="btn btn-primary btn-file">Load EDF File<input id="fileinput" type="file" onchange="this.form.submit()" style="display: none;" name="file" accept="*.edf;*.bdf"></label>
+                        </form>
+                        <form enctype="multipart/form-data" method="POST" action="/settings">
+                            <label class="btn btn-primary btn-file">Connect to LSL Stream<button id="lslstream" onmouseup="this.form.submit()" style="display: none;" name="button">LSL Stream</button></label>
                         </form>
                         
                         </label>

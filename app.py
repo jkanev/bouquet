@@ -392,7 +392,7 @@ def realtime(msg):
     data['buffer']=[]
     data['counter'] = 0
 
-    stream_name = 'medialab-EEG'
+    stream_name = 'EEG'
     streams = resolve_stream('type', 'EEG')
 
     try:
@@ -421,7 +421,7 @@ def realtime(msg):
             data['counter'] = 0
             chunk = highpass_filter(chunk,data['sampling_freq'],data['lcf'],data['hcf'],data['filter_size'])
             chunk = chunk-np.mean(chunk,axis=0).reshape(1,depth)
-            chunk = chunk - np.mean(chunk, axis=1).reshape(32,1)
+            chunk = chunk - np.mean(chunk, axis=0).reshape(32,1) # TODO should be number of channels, not "32"
             chunk = chunk/np.std(chunk,axis=0).reshape(1,depth)
 
             latent = data['model'].transform(chunk.T)
@@ -434,4 +434,4 @@ def realtime(msg):
     
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, use_reloader=False)
