@@ -9,7 +9,7 @@ import json
 import moviepy.editor as e
 import numpy as np
 from pylsl import StreamInlet, resolve_stream
-
+from numpy.fft import fft, fftshift, fftfreq
 
 global data
 data = {}
@@ -387,10 +387,13 @@ def rt_stop(msg):
 @socketio.on('rt')
 def realtime(msg):
     print(msg)
-    depth = msg['depth']
+    depth = 200 # msg['depth']
+    channels = 31 # msg['channels']  --  make sure to select 31 channels in the GUI before
+
     global data
-    data['buffer']=[]
+    data['buffer'] = []
     data['counter'] = 0
+    data['measure'] = []
 
     stream_name = 'EEG'
     streams = resolve_stream('type', 'EEG')
@@ -413,21 +416,40 @@ def realtime(msg):
 
     while data['rt_status']:
         sample, timestamp = inlet.pull_sample()
-        data['buffer'].append(sample)
+        data['buffer'].append(sample[0:31])
+        data['measure'].append(sample[31])
         data['counter'] += 1
         if len(data['buffer'])>=depth and data['counter'] >= 10:
-            chunk = np.array(data['buffer']).T
-            del data['buffer'][:data['counter']]
-            data['counter'] = 0
-            chunk = highpass_filter(chunk,data['sampling_freq'],data['lcf'],data['hcf'],data['filter_size'])
-            chunk = chunk-np.mean(chunk,axis=0).reshape(1,depth)
-            chunk = chunk - np.mean(chunk, axis=0).reshape(32,1) # TODO should be number of channels, not "32"
-            chunk = chunk/np.std(chunk,axis=0).reshape(1,depth)
 
-            latent = data['model'].transform(chunk.T)
-            latent = latent-np.mean(latent,axis=0).reshape(1,4)
-            latent = 0.5+ 0.5*latent/np.std(latent,axis=0).reshape(1,4)
-            out = {'raw':chunk.T,'color':latent[:,0:3],'thickness':latent[:,3]}
+            # reset counter and remove data that has already been queued
+            chunk = np.array(data['buffer']).T
+            measure = np.array(data['measure']).T
+            measure -= measure.min()
+            measure /= measure.max()
+            del data['buffer'][:data['counter']]
+            del data['measure'][:data['counter']]
+            data['counter'] = 0
+
+            # preprocess data
+            # chunk = highpass_filter(chunk,data['sampling_freq'],data['lcf'],data['hcf'],data['filter_size'])
+            # chunk = chunk - np.mean(chunk, axis=0).reshape(1, depth)
+            # chunk = chunk - np.mean(chunk, axis=1).reshape(32, 1) # TODO should be number of channels, not "32"
+            chunk = chunk / np.std(chunk, axis=1).reshape(31, 1)
+            s = np.sum(chunk, axis=0)
+            f = np.fft.rfft(s)
+            f = np.abs(f)
+            alpha = np.sum(f[3:6]) / 500 # at 500 Hz, I'll get a range of -250 to +250, alpha will be at 3:5
+
+            # latent = data['model'].transform(chunk.T)
+            # latent = latent-np.mean(latent,axis=0).reshape(1, 4)
+            # latent = 0.5 + 0.5 * latent / np.std(latent, axis=0).reshape(1, 4)
+            out = {
+                'raw': chunk.T,
+                'color': np.array([np.square(np.sin(measure * np.pi)),
+                                   np.square(np.sin(np.mod(measure+0.333, 1) * np.pi)),
+                                   np.square(np.sin(np.mod(measure+0.666, 1) * np.pi))]).T,
+                'thickness': np.ones(measure.T.shape)*alpha
+            }
             out = jsonify(out)
             socketio.sleep(0)
             socketio.emit('rt_data',out)
