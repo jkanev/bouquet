@@ -13,12 +13,12 @@ f = [(abs(np.sin((1)*t0))),
      (abs(np.sin((5)*t0)))]
 
 # Create 10 circles of different lengths
-M = 13
+M = 33
 lines = [None] * M
 ax = None
 fig = None
 freq_start = 1.0
-freq_step = 0.01
+freq_step = 0.007
 r = [[]] * M  # the interpolated circle data, zeros for now, consisting of M*N circles s[M][1..5], all the same length
 s = [[]] * M  # the raw circle data, zeros for now, consisting of M*N circles s[M][1..5]
 t = [[]] * M  # the base to plot against, will go from 0 to 2pi, t[M]
@@ -71,7 +71,7 @@ for f0 in np.arange(0, 1000, 0.01):
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_theta_zero_location("N")
-        ax.set_ylim(0.0, 15.0)
+        ax.set_ylim(0.0, 30.0)
         ax.set_facecolor('k')
         fig.set_facecolor('k')
         fig.canvas.toolbar.pack_forget()
@@ -90,7 +90,7 @@ for f0 in np.arange(0, 1000, 0.01):
         if first:
             try:
                 if len(last_data):
-                    [lines[m]] = ax.plot(t[m], p*last_data + q*data, color=(m/M, 0.5*m/M, 1-m/M))
+                    [lines[m]] = ax.plot(t[m], p*last_data + q*data, linewidth=2.0, color=(m/M, 0.5*m/M, 1-m/M))
             except BaseException as e:
                 print("Plot exception {} for curve n={}".format(e, m))
         else:
@@ -106,7 +106,7 @@ for f0 in np.arange(0, 1000, 0.01):
         last_data = data
     plt.pause(0.001)
     first = False
-    p += 0.05
+    p += 0.1
     if p > 1.0:
-        p = 0.05
+        p = 0.1
     q = 1.0 - p
